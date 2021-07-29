@@ -1,9 +1,16 @@
+
 # SR-GAN
 
 
 
 
 ## 기본적인 GAN 의 Modeling 
+
+
+
+
+<img width="781" alt="스크린샷 2021-07-30 오전 1 01 06" src="https://user-images.githubusercontent.com/76778082/127525921-21cea387-8675-4241-81c0-03adc511f24c.png">
+
 
 1. generator 가 이미지를 생성: Fake image -> 진짜 이미지와 Fake image  
 2. dataset에있는 진짜이미지 Real image                                             -------> discriminator 가 판별한다  역전파를 시킨다 
@@ -61,3 +68,4 @@ Minibatch판별 ,역사적 평균,단측레이블 평활화
 ## 이와같이 epoch 을 20000만번 이상  나름 괜찮은 quality 의 사진이나온다
 
 
+해당 전체코드는 jpynb 에있습니다. 궁금하신점은 질문 남겨주세요.
