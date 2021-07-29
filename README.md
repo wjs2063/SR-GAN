@@ -50,7 +50,8 @@ Minibatch판별 ,역사적 평균,단측레이블 평활화
 <img width="312" alt="스크린샷 2021-07-29 오후 5 40 16" src="https://user-images.githubusercontent.com/76778082/127462958-363cd299-71df-4ddc-be52-1260f8ae9a37.png">
 
 # epoch==100
-![image](https://user-images.githubusercontent.com/76778082/127463006-ab9b1e31-a2c7-4ee4-824c-7278cb1ab614.png)
+<img width="363" alt="스크린샷 2021-07-29 오후 6 11 51" src="https://user-images.githubusercontent.com/76778082/127465341-88f58725-30b1-4ed7-beb5-e89c2dd5ebe0.png">
+
 
 # epoch==200
 
