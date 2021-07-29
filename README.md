@@ -53,6 +53,6 @@ Minibatch판별 ,역사적 평균,단측레이블 평활화
 ![image](https://user-images.githubusercontent.com/76778082/127463006-ab9b1e31-a2c7-4ee4-824c-7278cb1ab614.png)
 
 
-## 이와같이 epoch 을 20000만이상하면 나름 괜찮은 quality 의 사진이나온다??
+## 이와같이 epoch 을 20000만이상하면 나름 괜찮은 quality 의 사진이나온다
 
 
