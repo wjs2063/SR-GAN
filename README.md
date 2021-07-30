@@ -65,6 +65,12 @@ Minibatch판별 ,역사적 평균,단측레이블 평활화
 
 <img width="363" alt="스크린샷 2021-07-29 오후 6 10 34" src="https://user-images.githubusercontent.com/76778082/127465194-f4b72e03-72c5-4d3e-a909-b15bf79cdd74.png">
 
+# epoch==5500
+
+![image](https://user-images.githubusercontent.com/76778082/127632013-1f882977-e328-40db-8c7e-fc41efb99f93.png)
+
+
+
 ## 이와같이 epoch 을 20000만번 이상  나름 괜찮은 quality 의 사진이나온다
 
 
