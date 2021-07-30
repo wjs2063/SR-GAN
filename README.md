@@ -1,6 +1,6 @@
 
 # SR-GAN
-
+(실행환경) GOOGLE COLAB
 
 
 
@@ -48,6 +48,381 @@ Minibatch판별 ,역사적 평균,단측레이블 평활화
 
 
 이정도로 간략히 요약한다.
+
+
+
+### Load Data set
+```
+def load_dataset(train_all_input_files:list,train_all_label_files:list,a:int,
+                 b:int)->list:
+    final_train_input=[]
+    final_label_input=[]
+    for index in range(a,b):
+        ## train 이미지를 list에 담는다
+        train_path=train_all_input_files[index]
+        
+        train_input=image.load_img(train_path,target_size=(256,256))
+        train_input=image.img_to_array(train_input)
+        train_input=np.array(train_input,dtype=np.float32)
+
+        label_path=train_all_label_files[index]
+        label_input=image.load_img(label_path,target_size=(256,256))
+        label_input=image.img_to_array(label_input)
+        label_input=np.array(label_input,dtype=np.float32)
+       
+        ## label 이미지를 list에 담는다
+        final_train_input.append(train_input)
+        final_label_input.append(label_input)
+        
+        #train_input 저해상도 label_input 고해상도
+    return final_train_input,final_label_input
+
+def load_testset(test_all_input_files:list)->list:
+    test_data=[]
+    for index in range(len(test_all_input_files)):
+        test_path=test_all_input_files[index]
+        test_input=image.load_img(test_path,target_size=(256,256))
+        test_input=image.img_to_array(test_input)
+        test_input=np.array(test_input,dtype=np.float32)
+        
+        
+        #test_input=test_input/127.5-1 #normalization을 해준다
+        test_data.append(test_input)
+    return test_data
+```
+
+
+### Build Model
+
+```
+class Generator():
+    def __init__(self,input_shape):
+        self.input_shape=(256,256,3)
+
+    def residual_block(self,x):
+    
+        filters = (64, 64)
+        kernel_size = 3
+        strides = 1
+        padding = "same"
+        momentum = 0.8
+        activation = "relu"
+
+        resid = Conv2D(filters=filters[0], kernel_size=kernel_size, strides=strides, padding=padding)(x)
+        resid = Activation(activation=activation)(resid)
+        resid = BatchNormalization(momentum=momentum)(resid)
+
+        resid = Conv2D(filters=filters[1], kernel_size=kernel_size, strides=strides, padding=padding)(resid)
+        resid = BatchNormalization(momentum=momentum)(resid)
+
+        
+        resid = Add()([resid, x])
+        return resid
+
+    def build_generator(self):
+        ## 함수형 API를 사용하여 작성하였다
+        n_residual_blocks = 16
+        momentum = 0.8
+        
+
+        # input 층 작성
+        input_layer = Input(shape=self.input_shape)
+
+        # 첫시작부분
+        gen1 = Conv2D(filters=64, kernel_size=9,
+                      strides=2, padding='same')(input_layer)
+        
+        # residual block 을 15개층을 쌓아줍니다.
+        resid = self.residual_block(gen1)
+        for i in range(n_residual_blocks - 1):
+            resid = self.residual_block(resid)
+
+        # CNN 구조와 배치정규화를 시켜줍니다. 이유는 GAN 의 불안정한 학습을 막기위해.
+        gen2 = Conv2D(filters=64, kernel_size=3, strides=1, 
+                      padding='same')(resid)
+        gen2 = BatchNormalization(momentum=momentum)(gen2)
+
+        
+        gen3 = Add()([gen2, gen1])
+
+        # Activation 함수는  PreLU 로도 써도될것같다.
+        gen4 = UpSampling2D(size=2)(gen3)
+        gen4 = Conv2D(filters=256, kernel_size=3, strides=2, padding='same')(gen4)
+        gen4 = LeakyReLU(0.1)(gen4)
+
+        gen4 = Conv2D(filters=256, kernel_size=3, strides=1, padding='same')(gen4)
+        gen4 = LeakyReLU(0.1)(gen4)
+
+        gen4 = Conv2D(filters=256, kernel_size=3, strides=1, padding='same')(gen4)
+        gen4 = LeakyReLU(0.1)(gen4)
+
+        gen4 = Conv2D(filters=256, kernel_size=3, strides=1, padding='same')(gen4)
+        gen4 = LeakyReLU(0.1)(gen4)
+        gen5 = UpSampling2D(size=2)(gen4)
+        gen5 = Conv2D(filters=256, kernel_size=3, strides=1, padding='same')(gen5)
+        gen5 = Activation('relu')(gen5)
+
+        
+        gen6 = Conv2D(filters=3, kernel_size=9, strides=1, padding='same')(gen5)
+        output = Activation('tanh')(gen6)
+        model = Model(inputs=[input_layer], outputs=[output], name='generator_model')
+        return model
+
+
+
+def build_discriminator():
+    # discriminator 또한 함수형 API 를 이용해 만들었다
+    leakyrelu_alpha = 0.2
+    momentum = 0.8
+    
+    input_shape=(None,None,3)
+    input_layer = Input(shape=input_shape)
+
+    
+    dis1 = Conv2D(filters=64, kernel_size=3, strides=1, padding='same')(input_layer)
+    dis1 = LeakyReLU(alpha=leakyrelu_alpha)(dis1)
+
+    
+    dis2 = Conv2D(filters=64, kernel_size=3, strides=1, padding='same')(dis1)
+    dis2 = LeakyReLU(alpha=leakyrelu_alpha)(dis2)
+    dis2 = BatchNormalization(momentum=momentum)(dis2)
+
+    
+    dis3 = Conv2D(filters=128, kernel_size=3, strides=1, padding='same')(dis2)
+    dis3 = LeakyReLU(alpha=leakyrelu_alpha)(dis3)
+    dis3 = BatchNormalization(momentum=momentum)(dis3)
+
+    
+    dis4 = Conv2D(filters=128, kernel_size=3, strides=1, padding='same')(dis3)
+    dis4 = LeakyReLU(alpha=leakyrelu_alpha)(dis4)
+    dis4 = BatchNormalization(momentum=0.8)(dis4)
+
+    
+    dis5 = Conv2D(256, kernel_size=3, strides=1, padding='same')(dis4)
+    dis5 = LeakyReLU(alpha=leakyrelu_alpha)(dis5)
+    dis5 = BatchNormalization(momentum=momentum)(dis5)
+
+    
+    dis6 = Conv2D(filters=256, kernel_size=3, strides=1, padding='same')(dis5)
+    dis6 = LeakyReLU(alpha=leakyrelu_alpha)(dis6)
+    dis6 = BatchNormalization(momentum=momentum)(dis6)
+
+    
+    dis7 = Conv2D(filters=512, kernel_size=3, strides=1, padding='same')(dis6)
+    dis7 = LeakyReLU(alpha=leakyrelu_alpha)(dis7)
+    dis7 = BatchNormalization(momentum=momentum)(dis7)
+
+    
+    dis8 = Conv2D(filters=512, kernel_size=3, strides=1, padding='same')(dis7)
+    dis8 = LeakyReLU(alpha=leakyrelu_alpha)(dis8)
+    dis8 = BatchNormalization(momentum=momentum)(dis8)
+
+    
+    dis9 = Dense(units=1024)(dis8)
+    dis9 = LeakyReLU(alpha=0.2)(dis9)
+
+    # 마지막이 Dense 1로 넣어준이유는 discriminator 는 분류만한다.
+    output = Dense(units=1, activation='sigmoid')(dis9)
+
+    model = Model(inputs=[input_layer], outputs=[output], name='discriminator')
+    
+    return model
+    
+```
+### Pre trained RESNET 불러오기
+
+```
+def build_resnet():
+    
+    input_shape = (None, None, 3)
+
+    # 사전학습된 ResNet 으로불러오자
+    res =tf.keras.applications.ResNet152V2(weights="imagenet",include_top=False, input_shape=(256, 256, 3))
+    
+    
+    
+    
+    
+    
+    
+    ## 모델생성~
+    model = Model(inputs=res.inputs, outputs=res.layers[9].output)
+    model.compile(loss='mse', optimizer=common_optimizer, metrics=['accuracy'])
+    
+    return model
+```
+
+
+
+### Adversirial 구축 및 Training 
+
+
+```
+epochs = 30000
+batch_size = 4
+
+
+## image shape 지정한다
+low_resolution_shape = (256, 256, 3)
+high_resolution_shape = (256, 256, 3)
+
+## resnet 을 훈련중지시킨다. 이유는 더이상 학습하면 안되고 특징추출의 기능만 하게하기위함이다
+common_optimizer = Adam(0.0002, 0.5)
+res = build_resnet()
+res.compile(loss='mse', optimizer=common_optimizer, metrics=['accuracy'])
+res.summary()
+res.trainable = False
+
+
+
+# dicriminator 생성
+shape=(256,256,3)
+#discriminator =load_model("/content/drive/MyDrive/LG_result/720srdiscriminator5000.h5")
+discriminator=build_discriminator()
+discriminator.compile(loss='mse', optimizer=common_optimizer, metrics=['accuracy'])
+
+discriminator.summary()
+
+
+##generator 생성
+##generator = load_model("/content/drive/MyDrive/LG_result/720srgenerator5000.h5")
+c=Generator(shape)
+generator=c.build_generator()
+generator.summary()
+
+
+
+## adversarial 모델을 만들어보자
+
+
+## 저해상도,고해상도 Input layers 를 만듬
+input_high_resolution = Input(shape=high_resolution_shape)
+input_low_resolution = Input(shape=low_resolution_shape)
+
+## 저해상도에서 고해상도이미지 생성
+generated_high_resolution_images = generator(input_low_resolution)
+
+## generator 가생성해낸 이미지의 특징추출 
+features = res(generated_high_resolution_images)
+
+## discriminator 훈련 중지
+discriminator.trainable = False
+
+## probability 저장
+probs = discriminator(generated_high_resolution_images)
+
+## adversarila 모델 생성
+adversarial_model = Model([input_low_resolution, input_high_resolution], [probs, features])
+adversarial_model.compile(loss=['binary_crossentropy', 'mse'], loss_weights=[1e-3, 1], optimizer=common_optimizer,)
+
+
+
+
+for epoch in range(epochs):
+    print("Epoch:{}".format(epoch))
+
+    """
+    Train the discriminator network
+    """
+
+    
+    high_resolution_images, low_resolution_images = sample_images(batch_size=batch_size,
+                                                                  low_resolution_shape=low_resolution_shape,
+                                                              high_resolution_shape=high_resolution_shape)
+    
+    # 데이터 전처리
+    high_resolution_images = high_resolution_images / 127.5 - 1.
+
+    low_resolution_images = low_resolution_images / 127.5 - 1.
+
+    # low resolution image 로 high resolution 을 만들어냄
+    generated_high_resolution_images = generator.predict(low_resolution_images)
+
+    # real 과 label 을 만들 크기생성 
+    real_labels = np.ones((batch_size, 256, 256, 1))
+    fake_labels = np.zeros((batch_size, 256, 256, 1))
+    
+    # discriminator 학습
+    d_loss_real = discriminator.train_on_batch(high_resolution_images, real_labels)
+    d_loss_fake = discriminator.train_on_batch(generated_high_resolution_images, fake_labels)
+
+    #  discriminator 손실함수의 합
+    d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
+    print("d_loss:", d_loss)
+
+    ## network 훈련
+
+    ## batch_size 만큼 샘플추출한다.
+    high_resolution_images, low_resolution_images = sample_images( batch_size=batch_size,
+                                                                  low_resolution_shape=low_resolution_shape,
+                                                                  high_resolution_shape=high_resolution_shape)
+    
+    high_resolution_images = high_resolution_images / 127.5 - 1.
+    low_resolution_images = low_resolution_images / 127.5 - 1.
+
+    ## vgg 를 활용한 feature map 추출
+    image_features = res.predict(high_resolution_images)
+    
+
+    ## generator network 훈련
+    g_loss = adversarial_model.train_on_batch([low_resolution_images, high_resolution_images],
+                                     [real_labels, image_features])
+
+    print("g_loss:", g_loss)
+
+    
+    
+    generated_images = generator.predict_on_batch(low_resolution_images)
+           
+    # epoch 마다 저장을 해놓아야함 아래수치마다 저장함
+    if epoch % 100 == 0:
+        
+        # Normalize images
+        high_resolution_images, low_resolution_images = sample_images(batch_size=batch_size,
+                                                                low_resolution_shape=low_resolution_shape,
+                                                                high_resolution_shape=high_resolution_shape)
+                # Normalize images
+        high_resolution_images = high_resolution_images / 127.5 - 1.
+        low_resolution_images = low_resolution_images / 127.5 - 1.
+
+        generated_images = generator.predict_on_batch(low_resolution_images)
+
+        for index, img in enumerate(generated_images):
+            visualize_image(img)
+        
+        
+    if epoch%1000==0 and epoch!=0:
+        
+
+        for index, img in enumerate(generated_images):
+            save_images(low_resolution_images[index], high_resolution_images[index], img,
+                        path="/content/drive/MyDrive/LG_result/img_{}_{}".format(epoch, index))
+    if epoch%2500==0 and epoch!=0:
+        generator.save_weights("/content/drive/MyDrive/LG_result/720srgenerator.h5")
+        discriminator.save_weights("/content/drive/MyDrive/LG_result/720srdiscriminator.h5")
+        generator.save(f"/content/drive/MyDrive/LG_result/720srgenerator{epoch}.h5")
+        discriminator.save(f"/content/drive/MyDrive/LG_result/720srdiscriminator{epoch}.h5")
+
+
+## 모델저장
+
+generator.save_weights("/content/drive/MyDrive/LG_result/720srgenerator.h5")
+discriminator.save_weights("/content/drive/MyDrive/LG_result/720srdiscriminator.h5")
+generator.save(f"/content/drive/MyDrive/LG_result/720srgenerator{epochs}.h5")
+discriminator.save(f"/content/drive/MyDrive/LG_result/720srdiscriminator{epochs}.h5")
+```
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
