@@ -1,7 +1,7 @@
 
 # SR-GAN
 (실행환경) GOOGLE COLAB
-
+실행기간 2021-07-05~2021-07-20
 
 
 ## 기본적인 GAN 의 Modeling 
