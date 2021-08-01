@@ -448,7 +448,7 @@ discriminator.save(f"/content/drive/MyDrive/LG_result/720srdiscriminator{epochs}
 
 
 
-## 이와같이 epoch 을 20000만번 이상  나름 괜찮은 quality 의 사진이나온다
+## epoch 을 20000만번 이상  나름 괜찮은 quality 의 사진이나온다
 
 
 ## 어려웠던점:
