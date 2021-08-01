@@ -13,7 +13,7 @@
 
 
 1. generator 가 이미지를 생성: Fake image -> 진짜 이미지와 Fake image  
-2. dataset에있는 진짜이미지 Real image                                             -------> discriminator 가 판별한다  역전파를 시킨다 
+2. dataset에있는 진짜이미지 Real image                                             -------> discriminator 가 판별한다 그리고 역전파를 시킨다 
 
 
 Generator 의 목적은 discriminator 를 속여 진짜같은 이미지를 만들어내는것 
@@ -21,7 +21,7 @@ Discriminator 의 목적은 가짜이미지를 검출해내는것
 
 이와같이 모델링이 짜여져있다.
 
-이 모델의 가장 이상적인 분포는 서로의 확률이 0.5 0.5 인 내쉬균형을 이루는 점이다. 
+이 모델의 목적은  서로의 확률이 0.5 0.5 인 내쉬균형을 이루도록 하는것이다.
 
 하지만 이를 달성하기에는 몇가지 어려움이있다
 
@@ -455,8 +455,8 @@ discriminator.save(f"/content/drive/MyDrive/LG_result/720srdiscriminator{epochs}
 0. 데이터 전처리 시 cv2.imread 와 load_img 의 불러오는 방식이 틀려서 애를먹었다. cv2 는 channel 을 BGR 로 불러오게되고 다시 RGB채널로 바꾸어야한다. load_img 는 처음부터 RGB로 불러온다
 1. 모델이 크다보니까 shape 를 잘못맞추게되면 찾기가 굉장히 힘들어진다. shape 을 손으로 다 일일히 계산해서 찾거나 print 찍어야했다.
 2. Generator,Discriminator 균형을 맞추는게 생각보다 힘들다. 처음에 Resnet 과 Unet 을 섞어만든 ResUnet 으로 generator 를 생성해보았는데 좋은결과가 나오지않았다.
-3. Artifact 가 생긴다. discriminator 가 더빨리학습될떄 생긴다는 의견도있다. 이 artifact 에 대한 해결방법으로는 stride 와 kernel size 가 나누어 떨어지게하는방법,
-GAN 분야는 아직도 활발하게 연구가되고있는 분야여서 아직 정확히 밝혀진게없다.
+3. Artifact 가 생긴다. discriminator 가 더빨리학습될떄 생긴다는 의견도있다. 이에 대한 해결방법으로는 stride 와 kernel size 가 나누어 떨어지게하는방법등이있는데 정확히는 모르겠다.
+GAN 분야는 아직도 활발하게 연구가되고있는 분야여서 아직 정확한 해결방법이없다.
 
 
 
